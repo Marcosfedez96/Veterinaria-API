@@ -1,6 +1,7 @@
 using Scalar.AspNetCore;
 using Veterinaria_API;
 using Veterinaria_API.Models;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -10,6 +11,8 @@ builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
+builder.Services.AddDbContext<VeterinariaContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("VeterinariaConnection")));
 var app = builder.Build();
 /*builder.Services.AddCors(options =>
 {
