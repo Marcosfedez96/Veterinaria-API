@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics.Contracts;
 using Veterinaria_API.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace Veterinaria_API.Controllers
 {
@@ -8,12 +9,32 @@ namespace Veterinaria_API.Controllers
     [Route("api/[controller]")]
     public class MascotasController : ControllerBase
     {
-       
+        private readonly VeterinariaContext _context;
+        public MascotasController(VeterinariaContext context)
+        {
+            _context = context;
+        }
+        [HttpGet]
+        public async Task<ActionResult<List<Mascota>>> GetAll([FromQuery] string? especie, [FromQuery] string? nombre)
+        {
+            var Resultado = _context.Mascotas.AsQueryable();
+
+            if (!string.IsNullOrEmpty(especie))
+            {
+                Resultado = Resultado.Where(x => x.Especie.Equals(especie, StringComparison.OrdinalIgnoreCase));
+            }
+            if (!string.IsNullOrEmpty(nombre))
+            {
+                Resultado = Resultado.Where(x => x.Nombre.Contains(nombre, StringComparison.OrdinalIgnoreCase));
+            }
+            var resultadoFinal = await Resultado.ToListAsync();
+            return Ok(resultadoFinal);
+        }
 
         [HttpGet("{id:int}")]
-        public ActionResult<Mascota> GetById([FromRoute] int id)
+        public async Task<ActionResult<Mascota>> GetById([FromRoute] int id)
         {
-            var mascota = BaseDeDatos.mascotas.FirstOrDefault(x => x.Id == id);
+            var mascota = await _context.Mascotas.FirstOrDefaultAsync(x => x.Id == id);
             if (mascota == null)
             {
                 return NotFound();
@@ -21,20 +42,24 @@ namespace Veterinaria_API.Controllers
             return Ok(mascota);
         }
         [HttpPost]
-        public IActionResult CrearMascota([FromBody] Mascota _mascota)
+        public async Task<IActionResult> CrearMascota([FromBody] Mascota _mascota)
         {
             if(_mascota.Especie.Equals("Ave",StringComparison.OrdinalIgnoreCase) && _mascota.Edad > 15)
             {
                return BadRequest(new {messaje = "Las aves no puedes superar los 15 años" });
             }
-            _mascota.Id = BaseDeDatos.mascotas.Any() ? BaseDeDatos.mascotas.Max(x => x.Id) + 1 : 1;
-            BaseDeDatos.mascotas.Add(_mascota);
+           
+            _context.Add(_mascota);
+            await _context.SaveChangesAsync();
             return CreatedAtAction(nameof(GetById), new { id = _mascota.Id }, _mascota);
+        
+            
+            
         }
         [HttpPut("{id:int}")]
-        public IActionResult ActualizarMasota([FromRoute] int id, [FromBody] Mascota _mascota)
+        public async Task<IActionResult> ActualizarMascota([FromRoute] int id, [FromBody] Mascota _mascota)
         {
-            var mascotaExistente = BaseDeDatos.mascotas.FirstOrDefault(x => x.Id == id);
+            var mascotaExistente = await _context.Mascotas.FirstOrDefaultAsync(x => x.Id == id);
             if (mascotaExistente == null)
             {
                 return NotFound();
@@ -43,39 +68,25 @@ namespace Veterinaria_API.Controllers
                _mascota.Especie.Equals("ave",StringComparison.OrdinalIgnoreCase)&& _mascota.Edad > 15 ||
                _mascota.Especie.Equals("raton",StringComparison.OrdinalIgnoreCase)&& _mascota.Edad > 4)
             {
-                return BadRequest(new { Message = "la edad puesta se imposible para esta especie" });
+                return BadRequest(new { message = "la edad puesta es imposible para esta especie" });
             }
             mascotaExistente.Nombre = _mascota.Nombre;
             mascotaExistente.Especie = _mascota.Especie;
             mascotaExistente.Edad = _mascota.Edad;
+            await _context.SaveChangesAsync();
             return Ok(mascotaExistente);
         }
         [HttpDelete("{id:int}")]
-        public IActionResult EliminarMascota([FromRoute]int id)
+        public async Task<IActionResult> EliminarMascota([FromRoute]int id)
         {
-            var mascotaExistente = BaseDeDatos.mascotas.FirstOrDefault(x => x.Id == id);
+            var mascotaExistente = await _context.Mascotas.FirstOrDefaultAsync(x => x.Id == id);
             if (mascotaExistente == null)
             {
                 return NotFound();
             }
-            BaseDeDatos.mascotas.Remove(mascotaExistente);
+            _context.Mascotas.Remove(mascotaExistente);
+            await _context.SaveChangesAsync();
             return NoContent();
-        }
-        [HttpGet]
-        public ActionResult<List<Mascota>> GetAll([FromQuery]string? especie,[FromQuery] string? nombre)
-        {
-            var Resultado = BaseDeDatos.mascotas.AsEnumerable();
-
-            if(!string.IsNullOrEmpty(especie))
-            {
-                Resultado = Resultado.Where(x => x.Especie.Equals(especie, StringComparison.OrdinalIgnoreCase));
-            }
-            if (!string.IsNullOrEmpty(nombre))
-            {
-                Resultado = Resultado.Where(x => x.Nombre.Contains(nombre, StringComparison.OrdinalIgnoreCase));
-            }
-             
-            return Ok(Resultado.ToList());
         }
         
     }
