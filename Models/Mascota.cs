@@ -1,4 +1,6 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
+using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace Veterinaria_API.Models
 {
@@ -15,5 +17,10 @@ namespace Veterinaria_API.Models
 
         [Range(0,40,ErrorMessage="La edad debe estar entre 0 y 40 años.")]
         public int Edad { get; set; }
+
+        public int TutorId { set; get; }
+        [ValidateNever]
+        [JsonIgnore]
+        public Tutor Tutor { set; get; } = new();
     }
 }

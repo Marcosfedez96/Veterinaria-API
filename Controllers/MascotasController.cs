@@ -42,16 +42,17 @@ namespace Veterinaria_API.Controllers
             return Ok(mascota);
         }
         [HttpPost]
-        public async Task<IActionResult> CrearMascota([FromBody] Mascota _mascota)
+        public async Task<IActionResult> CrearMascota([FromBody] Mascota mascota)
         {
-            if(_mascota.Especie.Equals("Ave",StringComparison.OrdinalIgnoreCase) && _mascota.Edad > 15)
+            if(mascota.Especie.Equals("Ave",StringComparison.OrdinalIgnoreCase) && mascota.Edad > 15)
             {
                return BadRequest(new {messaje = "Las aves no puedes superar los 15 años" });
             }
-           
-            _context.Add(_mascota);
+            Tutor tutor = await _context.Tutores.FirstOrDefaultAsync(x => x.Id == mascota.TutorId);
+            mascota.Tutor = tutor;
+            _context.Add(mascota);
             await _context.SaveChangesAsync();
-            return CreatedAtAction(nameof(GetById), new { id = _mascota.Id }, _mascota);
+            return CreatedAtAction(nameof(GetById), new { id = mascota.Id }, mascota);
         
             
             

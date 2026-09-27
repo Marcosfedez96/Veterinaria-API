@@ -9,5 +9,6 @@ namespace Veterinaria_API.Models
         }
         public DbSet<Mascota> Mascotas { set; get; }
         public DbSet<Veterinario> Veterinarios { set; get; }
+        public DbSet<Tutor> Tutores { set; get; }
     }
 }
