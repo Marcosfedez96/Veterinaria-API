@@ -18,7 +18,7 @@ namespace Veterinaria_API.Controllers
         [HttpGet]
         public async Task<ActionResult<List<Veterinario>>> GetAll([FromQuery]string? especialidad, [FromQuery]bool? esPracticante)
         {
-            var resultadoBusqueda =  _context.Veterinarios.ToAsyncEnumerable();
+            var resultadoBusqueda =  _context.Veterinarios.AsQueryable();
             
             if (!string.IsNullOrEmpty(especialidad))
             {

@@ -22,5 +22,7 @@ namespace Veterinaria_API.Models
         [ValidateNever]
         [JsonIgnore]
         public Tutor Tutor { set; get; } = new();
+        [JsonIgnore]
+        public List<Turno> Turnos { set; get; } = new();
     }
 }
