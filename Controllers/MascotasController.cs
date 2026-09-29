@@ -19,14 +19,13 @@ namespace Veterinaria_API.Controllers
         {
             var Resultado = _context.Mascotas.AsQueryable();
 
-            if (!string.IsNullOrEmpty(especie))
+            if (!string.IsNullOrEmpty(especie)|| !string.IsNullOrEmpty(nombre))
             {
-                Resultado = Resultado.Where(x => x.Especie.Equals(especie, StringComparison.OrdinalIgnoreCase));
+                Resultado = Resultado
+                    .Where(x => (!string.IsNullOrEmpty(especie) && x.Especie.Equals(especie, StringComparison.OrdinalIgnoreCase))
+                    || (!string.IsNullOrEmpty(nombre) && x.Nombre.Contains(nombre, StringComparison.OrdinalIgnoreCase)));
             }
-            if (!string.IsNullOrEmpty(nombre))
-            {
-                Resultado = Resultado.Where(x => x.Nombre.Contains(nombre, StringComparison.OrdinalIgnoreCase));
-            }
+            
             var resultadoFinal = await Resultado.ToListAsync();
             return Ok(resultadoFinal);
         }

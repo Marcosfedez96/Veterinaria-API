@@ -20,19 +20,20 @@ namespace Veterinaria_API.Controllers
         {
             var resultadoBusqueda =  _context.Veterinarios.AsQueryable();
             
-            if (!string.IsNullOrEmpty(especialidad))
+            if (!string.IsNullOrEmpty(especialidad) || esPracticante.HasValue)
             {
-                resultadoBusqueda = resultadoBusqueda.Where(x => x.Especialidad.Contains(especialidad, StringComparison.OrdinalIgnoreCase));
+                resultadoBusqueda = resultadoBusqueda
+                    .Where(x => (!string.IsNullOrEmpty(especialidad) 
+                    && x.Especialidad.Contains(especialidad, StringComparison.OrdinalIgnoreCase))
+                    || (esPracticante.HasValue && x.EsPracticante.Equals(esPracticante)));
             }
-            if (esPracticante.HasValue){
-                resultadoBusqueda = resultadoBusqueda.Where(x => x.EsPracticante.Equals(esPracticante));
-            }
-            return Ok(await resultadoBusqueda.ToListAsync());
+            var resultadoFinal = await resultadoBusqueda.ToListAsync();
+            return Ok(resultadoFinal);
         }
         [HttpGet("{id:int}")]
         public async Task<ActionResult<Veterinario>> GetById([FromRoute] int id)
         {
-            var resultadoBusqueda = await _context.Veterinarios.FirstOrDefaultAsync(x => x.Id == id);
+            var resultadoBusqueda = await _context.Veterinarios.Include(t=>t.Turnos).FirstOrDefaultAsync(x => x.Id == id);
             if(resultadoBusqueda == null)
             {
                 return NotFound("El veterinario no existe");

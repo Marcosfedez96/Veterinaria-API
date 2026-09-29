@@ -1,7 +1,8 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Veterinaria_API.Models;
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Cryptography;
+using Veterinaria_API.Models;
 
 namespace Veterinaria_API.Controllers
 {
@@ -16,19 +17,26 @@ namespace Veterinaria_API.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<List<Turno>>> GetAll([FromQuery]int? id, [FromQuery]DateOnly? fecha)
+        public async Task<ActionResult<List<Turno>>> GetAll([FromQuery]int? idVeterinario, [FromQuery]DateOnly? fecha, [FromQuery] bool? hoy)
         {
-           
-            var resultadoBusqueda = _context.Turnos.Include(m => m.Mascota)
+            DateOnly dia = DateOnly.FromDateTime(DateTime.Now);
+
+            var resultadoBusqueda = _context.Turnos
+                .Include(m => m.Mascota)
                 .Include(v => v.Veterianario).AsQueryable();
-            if (id.HasValue && fecha.HasValue)
+            if(idVeterinario.HasValue || hoy == true || fecha.HasValue)
             {
-                resultadoBusqueda = _context.Turnos.Where(x => x.VeterinarioId == id && x.DiaTurno == fecha)
-                    .Include(m => m.Mascota)
-                    .Include(v => v.Veterianario); ;
+                resultadoBusqueda = resultadoBusqueda
+                    .Where(x => (idVeterinario.HasValue && x.VeterinarioId == idVeterinario)
+                    || (hoy == true && x.DiaTurno == dia)
+                    || (fecha.HasValue && x.DiaTurno == fecha));
             }
-                
-            return Ok( await resultadoBusqueda.ToListAsync());
+
+            var resultadoFinal = await resultadoBusqueda.ToListAsync();
+                        
+            return Ok(resultadoFinal);
+
+
         }
 
         [HttpGet("{id:int}")]
@@ -44,6 +52,7 @@ namespace Veterinaria_API.Controllers
             }
             return Ok(resultadoBusqueda);
         }
+        
         [HttpPost]
         public async Task<ActionResult<Turno>> PostTurno([FromBody]Turno turno)
         {
