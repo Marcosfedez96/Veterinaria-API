@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Cryptography;
+using Veterinaria_API.DTOs;
 using Veterinaria_API.Models;
 
 namespace Veterinaria_API.Controllers
@@ -22,8 +23,9 @@ namespace Veterinaria_API.Controllers
             DateOnly dia = DateOnly.FromDateTime(DateTime.Now);
 
             var resultadoBusqueda = _context.Turnos
-                .Include(m => m.Mascota)
-                .Include(v => v.Veterianario).AsQueryable();
+             //   .Include(m => m.Mascota)
+                .Include(v => v.Veterianario)
+                .AsQueryable();
             if(idVeterinario.HasValue || hoy == true || fecha.HasValue)
             {
                 resultadoBusqueda = resultadoBusqueda
@@ -43,7 +45,7 @@ namespace Veterinaria_API.Controllers
         public async Task<ActionResult<Turno>> GetById([FromRoute]int id)
         {
             var resultadoBusqueda = await _context.Turnos
-                .Include(m => m.Mascota)
+          //      .Include(m => m.Mascota)
                 .Include(v => v.Veterianario)
                 .FirstOrDefaultAsync(x => x.Id == id);
             if(resultadoBusqueda == null)
@@ -54,16 +56,23 @@ namespace Veterinaria_API.Controllers
         }
         
         [HttpPost]
-        public async Task<ActionResult<Turno>> PostTurno([FromBody]Turno turno)
+        public async Task<ActionResult<Turno>> PostTurno([FromBody] CrearTurnoDto crearTurnoDto)
         {
             var turnoOcupado = await _context.Turnos
-                .FirstOrDefaultAsync(x => x.HoraTurno == turno.HoraTurno 
-                && x.DiaTurno == turno.DiaTurno
-                && x.VeterinarioId == turno.VeterinarioId);
+                .FirstOrDefaultAsync(x => x.HoraTurno == crearTurnoDto.HoraTurno 
+                && x.DiaTurno == crearTurnoDto.DiaTurno
+                && x.VeterinarioId == crearTurnoDto.VeterinarioId);
             if(turnoOcupado != null)
             {
                 return Conflict("El turno esta Ocupado");
             }
+            Turno turno = new Turno()
+            {
+                DiaTurno = crearTurnoDto.DiaTurno,
+                HoraTurno = crearTurnoDto.HoraTurno,
+                VeterinarioId = crearTurnoDto.VeterinarioId,
+                MascotaId = crearTurnoDto.MascotaId
+            };
             turno.Mascota = await _context.Mascotas.FirstOrDefaultAsync(x => x.Id == turno.MascotaId);
             if (turno.Mascota == null)
             {
@@ -76,7 +85,7 @@ namespace Veterinaria_API.Controllers
             }
             _context.Turnos.Add(turno);
             await _context.SaveChangesAsync();
-            return CreatedAtAction(nameof(GetById), new { id = turno.Id }, turno);
+            return CreatedAtAction(nameof(GetById), new { id = turno.Id }, crearTurnoDto);
         }
 
         [HttpPut("{id:int}")]

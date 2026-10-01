@@ -1,7 +1,9 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Veterinaria_API.Models;
 using Microsoft.EntityFrameworkCore;
+using Veterinaria_API.DTOs;
+using Veterinaria_API.Models;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Veterinaria_API.Controllers
 {
@@ -20,15 +22,14 @@ namespace Veterinaria_API.Controllers
         {
             var resultadoBusqueda =  _context.Veterinarios.AsQueryable();
             
-            if (!string.IsNullOrEmpty(especialidad) || esPracticante.HasValue)
+            if (!string.IsNullOrEmpty(especialidad))
             {
-                resultadoBusqueda = resultadoBusqueda
-                    .Where(x => (!string.IsNullOrEmpty(especialidad) 
-                    && x.Especialidad.Contains(especialidad, StringComparison.OrdinalIgnoreCase))
-                    || (esPracticante.HasValue && x.EsPracticante.Equals(esPracticante)));
+                resultadoBusqueda = resultadoBusqueda.Where(x => x.Especialidad.Contains(especialidad, StringComparison.OrdinalIgnoreCase));
             }
-            var resultadoFinal = await resultadoBusqueda.ToListAsync();
-            return Ok(resultadoFinal);
+            if (esPracticante.HasValue){
+                resultadoBusqueda = resultadoBusqueda.Where(x => x.EsPracticante.Equals(esPracticante));
+            }
+            return Ok(await resultadoBusqueda.ToListAsync());
         }
         [HttpGet("{id:int}")]
         public async Task<ActionResult<Veterinario>> GetById([FromRoute] int id)
@@ -45,16 +46,23 @@ namespace Veterinaria_API.Controllers
             
         }
         [HttpPost]
-        public async Task<IActionResult> PostVeterinario([FromBody] Veterinario veterinario)
+        public async Task<IActionResult> PostVeterinario([FromBody] CrearVeterinarioDto crearVeterinarioDto)
         {
-            if(veterinario.EsPracticante.Equals(true) && !String.IsNullOrEmpty(veterinario.Matricula))
+            if(crearVeterinarioDto.EsPracticante.Equals(true) && !string.IsNullOrEmpty(crearVeterinarioDto.Matricula))
             {
                 return BadRequest("Un practicante no tiene matricula");
             }
+            Veterinario veterinario = new Veterinario()
+            {
+                Nombre = crearVeterinarioDto.Nombre,
+                Especialidad = crearVeterinarioDto.Especialidad,
+                Matricula = crearVeterinarioDto.Matricula,
+                EsPracticante = crearVeterinarioDto.EsPracticante
+            };
             //veterinario.Id = BaseDeDatos.veterinarios.Any() ? BaseDeDatos.veterinarios.Max(x => x.Id) + 1 : 1;
             _context.Veterinarios.Add(veterinario);
             await _context.SaveChangesAsync();
-            return CreatedAtAction(nameof(GetById), new { id = veterinario.Id }, veterinario);
+            return CreatedAtAction(nameof(GetById), new { id = veterinario.Id }, crearVeterinarioDto);
         }
         [HttpPut("{id:int}")]
         public async Task<IActionResult> PutVeterinario([FromRoute]int id, [FromBody]Veterinario veterinario)

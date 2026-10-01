@@ -1,7 +1,9 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Veterinaria_API.DTOs;
 using Veterinaria_API.Models;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace Veterinaria_API.Controllers
 {
@@ -19,7 +21,9 @@ namespace Veterinaria_API.Controllers
         public async Task<ActionResult<List<Tutor>>> GetAll()
         {
 
-            var resultadoBusqueda = await _context.Tutores.Include(t => t.Mascotas).ToListAsync();
+            var resultadoBusqueda = await _context.Tutores
+               // .Include(t => t.Mascotas)
+                .ToListAsync();
             
             return Ok(resultadoBusqueda);
         }
@@ -27,7 +31,7 @@ namespace Veterinaria_API.Controllers
         public async Task<ActionResult<Tutor>> GetById([FromRoute] int id)
         {
             var resultadoBusqueda = await _context.Tutores
-                .Include(t => t.Mascotas)
+               // .Include(t => t.Mascotas)
                 .FirstOrDefaultAsync(x => x.Id == id);
             
             if(resultadoBusqueda == null)
@@ -37,12 +41,17 @@ namespace Veterinaria_API.Controllers
             return Ok(resultadoBusqueda);
         }
         [HttpPost]
-        public async Task <ActionResult<Tutor>> PostTutor([FromBody] Tutor tutor)
+        public async Task <ActionResult<Tutor>> PostTutor([FromBody] CrearTutorDto crearTutorDto)
         {
-
+            Tutor tutor = new Tutor()
+            {
+                Nombre = crearTutorDto.Nombre,
+                Telefono = crearTutorDto.Telefono,
+                Email = crearTutorDto.Email
+            };
             _context.Tutores.Add(tutor);
             await _context.SaveChangesAsync();
-            return CreatedAtAction(nameof(GetById), new { id = tutor.Id }, tutor);
+            return CreatedAtAction(nameof(GetById), new { id = tutor.Id }, crearTutorDto);
         }
 
         [HttpPut("{id:int}")]

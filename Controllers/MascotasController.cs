@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics.Contracts;
 using Veterinaria_API.Models;
+using Veterinaria_API.DTOs;
 using Microsoft.EntityFrameworkCore;
 
 namespace Veterinaria_API.Controllers
@@ -19,13 +20,14 @@ namespace Veterinaria_API.Controllers
         {
             var Resultado = _context.Mascotas.AsQueryable();
 
-            if (!string.IsNullOrEmpty(especie)|| !string.IsNullOrEmpty(nombre))
+            if (!string.IsNullOrEmpty(especie))
             {
-                Resultado = Resultado
-                    .Where(x => (!string.IsNullOrEmpty(especie) && x.Especie.Equals(especie, StringComparison.OrdinalIgnoreCase))
-                    || (!string.IsNullOrEmpty(nombre) && x.Nombre.Contains(nombre, StringComparison.OrdinalIgnoreCase)));
+                Resultado = Resultado.Where(x => x.Especie.Equals(especie, StringComparison.OrdinalIgnoreCase));
             }
-            
+            if (!string.IsNullOrEmpty(nombre))
+            {
+                Resultado = Resultado.Where(x => x.Nombre.Contains(nombre, StringComparison.OrdinalIgnoreCase));
+            }
             var resultadoFinal = await Resultado.ToListAsync();
             return Ok(resultadoFinal);
         }
@@ -41,20 +43,31 @@ namespace Veterinaria_API.Controllers
             return Ok(mascota);
         }
         [HttpPost]
-        public async Task<IActionResult> CrearMascota([FromBody] Mascota mascota)
+        public async Task<IActionResult> CrearMascota([FromBody] CrearMascotaDto crearMascotaDto)
         {
-            if(mascota.Especie.Equals("Ave",StringComparison.OrdinalIgnoreCase) && mascota.Edad > 15)
+            if(crearMascotaDto.Especie.Equals("Ave",StringComparison.OrdinalIgnoreCase) && crearMascotaDto.Edad > 15)
             {
                return BadRequest(new {messaje = "Las aves no puedes superar los 15 años" });
             }
-            Tutor tutor = await _context.Tutores.FirstOrDefaultAsync(x => x.Id == mascota.TutorId);
-            mascota.Tutor = tutor;
+            Tutor tutor = await _context.Tutores.FirstOrDefaultAsync(x => x.Id == crearMascotaDto.TutorId);
+            if(tutor == null)
+            {
+                return NotFound("el Tutor no existe.");
+            }
+            var turnos = new List<Turno>();
+            Mascota mascota = new Mascota
+            {
+                Nombre = crearMascotaDto.Nombre,
+                Especie = crearMascotaDto.Especie,
+                Edad = crearMascotaDto.Edad,
+                TutorId = crearMascotaDto.TutorId,
+                Tutor = tutor,
+                Turnos = turnos
+            };
             _context.Add(mascota);
             await _context.SaveChangesAsync();
-            return CreatedAtAction(nameof(GetById), new { id = mascota.Id }, mascota);
-        
-            
-            
+            return CreatedAtAction(nameof(GetById), new { id = mascota.Id }, crearMascotaDto);
+                
         }
         [HttpPut("{id:int}")]
         public async Task<IActionResult> ActualizarMascota([FromRoute] int id, [FromBody] Mascota _mascota)

@@ -1,16 +1,13 @@
 ﻿using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
-using System.Text.Json.Serialization;
+using Veterinaria_API.Models;
 
-namespace Veterinaria_API.Models
+namespace Veterinaria_API.DTOs
 {
-    public class Turno
+    public class CrearTurnoDto
     {
-        public int Id { get; set; }
         public DateOnly DiaTurno { set; get; }
         public TimeOnly HoraTurno { set; get; }
         public int VeterinarioId { set; get; }
         public int MascotaId { set; get; }
-        public Veterinario Veterianario { set; get; }
-        public Mascota Mascota { set; get; } 
     }
 }

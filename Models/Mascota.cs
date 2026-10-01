@@ -19,10 +19,7 @@ namespace Veterinaria_API.Models
         public int Edad { get; set; }
 
         public int TutorId { set; get; }
-        [ValidateNever]
-        [JsonIgnore]
         public Tutor Tutor { set; get; } = new();
-        [JsonIgnore]
         public List<Turno> Turnos { set; get; } = new();
     }
 }
