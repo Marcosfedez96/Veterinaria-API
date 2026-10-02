@@ -4,6 +4,7 @@ using Veterinaria_API.Models;
 using Veterinaria_API.DTOs;
 using Microsoft.EntityFrameworkCore;
 
+
 namespace Veterinaria_API.Controllers
 {
     [ApiController]
@@ -16,31 +17,59 @@ namespace Veterinaria_API.Controllers
             _context = context;
         }
         [HttpGet]
-        public async Task<ActionResult<List<Mascota>>> GetAll([FromQuery] string? especie, [FromQuery] string? nombre)
+        public async Task<ActionResult<List<MascotaDto>>> GetAll([FromQuery] string? especie, [FromQuery] string? nombre)
         {
-            var Resultado = _context.Mascotas.AsQueryable();
+            var resultado = _context.Mascotas.
+                Include(t=> t.Tutor)
+                .AsQueryable();
+            
 
             if (!string.IsNullOrEmpty(especie))
             {
-                Resultado = Resultado.Where(x => x.Especie.Equals(especie, StringComparison.OrdinalIgnoreCase));
+                resultado = resultado.Where(x => x.Especie.Equals(especie, StringComparison.OrdinalIgnoreCase));
             }
             if (!string.IsNullOrEmpty(nombre))
             {
-                Resultado = Resultado.Where(x => x.Nombre.Contains(nombre, StringComparison.OrdinalIgnoreCase));
+                resultado = resultado.Where(x => x.Nombre.Contains(nombre, StringComparison.OrdinalIgnoreCase));
             }
-            var resultadoFinal = await Resultado.ToListAsync();
-            return Ok(resultadoFinal);
+            var mascotasDtoList = await resultado
+                .Select(m => new MascotaDto
+                {
+                    Id = m.Id,
+                    Nombre = m.Nombre,
+                    Especie = m.Especie,
+                    Edad = m.Edad,
+                    TutorId = m.TutorId,
+                    TutorNombre = m.Tutor.Nombre
+                }
+                ).ToListAsync();
+            
+           
+            return Ok(mascotasDtoList);
         }
 
         [HttpGet("{id:int}")]
-        public async Task<ActionResult<Mascota>> GetById([FromRoute] int id)
+        public async Task<ActionResult<MascotaDto>> GetById([FromRoute] int id)
         {
-            var mascota = await _context.Mascotas.FirstOrDefaultAsync(x => x.Id == id);
-            if (mascota == null)
+            var resultadoBusqueda = await _context.Mascotas
+                .Include(t=>t.Tutor)
+                .FirstOrDefaultAsync(x => x.Id == id);
+            if (resultadoBusqueda == null)
             {
                 return NotFound();
             }
-            return Ok(mascota);
+            MascotaDto mascotaDto = new MascotaDto()
+            {
+                Id = resultadoBusqueda.Id,
+                Nombre = resultadoBusqueda.Nombre,
+                Especie = resultadoBusqueda.Especie,
+                Edad = resultadoBusqueda.Edad,
+                TutorId = resultadoBusqueda.TutorId,
+                TutorNombre = resultadoBusqueda.Tutor.Nombre
+            };
+
+
+            return Ok(mascotaDto);
         }
         [HttpPost]
         public async Task<IActionResult> CrearMascota([FromBody] CrearMascotaDto crearMascotaDto)

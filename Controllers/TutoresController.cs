@@ -18,27 +18,46 @@ namespace Veterinaria_API.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<List<Tutor>>> GetAll()
+        public async Task<ActionResult<List<TutorDto>>> GetAll()
         {
 
-            var resultadoBusqueda = await _context.Tutores
-               // .Include(t => t.Mascotas)
-                .ToListAsync();
+            var TutoresDto = await _context.Tutores
+                .Select(m => new TutorDto
+                {
+                    Id = m.Id,
+                    Nombre = m.Nombre,
+                    Telefono = m.Telefono,
+                    Email = m.Email,
+                    MascotasId = m.Mascotas.Select(m=> m.Id).ToList(),
+                    NombreMascotas = m.Mascotas.Select(m => m.Nombre).ToList()
+                }).ToListAsync();
             
-            return Ok(resultadoBusqueda);
+            return Ok(TutoresDto);
         }
         [HttpGet("{id:int}")]
-        public async Task<ActionResult<Tutor>> GetById([FromRoute] int id)
+        public async Task<ActionResult<TutorDto>> GetById([FromRoute] int id)
         {
             var resultadoBusqueda = await _context.Tutores
-               // .Include(t => t.Mascotas)
+                .Include(t => t.Mascotas)
                 .FirstOrDefaultAsync(x => x.Id == id);
             
             if(resultadoBusqueda == null)
             {
                 return NotFound("El tutor que busca no existe");
             }
-            return Ok(resultadoBusqueda);
+
+            TutorDto tutorDto = new TutorDto
+            {
+
+                Id = resultadoBusqueda.Id,
+                Nombre = resultadoBusqueda.Nombre,
+                Telefono = resultadoBusqueda.Telefono,
+                Email = resultadoBusqueda.Email,
+                MascotasId = resultadoBusqueda.Mascotas.Select(m => m.Id).ToList(),
+                NombreMascotas = resultadoBusqueda.Mascotas.Select(m => m.Nombre).ToList()
+            };
+
+            return Ok(tutorDto);
         }
         [HttpPost]
         public async Task <ActionResult<Tutor>> PostTutor([FromBody] CrearTutorDto crearTutorDto)

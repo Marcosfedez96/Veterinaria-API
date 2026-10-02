@@ -18,12 +18,12 @@ namespace Veterinaria_API.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<List<Turno>>> GetAll([FromQuery]int? idVeterinario, [FromQuery]DateOnly? fecha, [FromQuery] bool? hoy)
+        public async Task<ActionResult<List<TurnoDto>>> GetAll([FromQuery]int? idVeterinario, [FromQuery]DateOnly? fecha, [FromQuery] bool? hoy)
         {
             DateOnly dia = DateOnly.FromDateTime(DateTime.Now);
 
             var resultadoBusqueda = _context.Turnos
-             //   .Include(m => m.Mascota)
+                .Include(m => m.Mascota)
                 .Include(v => v.Veterianario)
                 .AsQueryable();
             if(idVeterinario.HasValue || hoy == true || fecha.HasValue)
@@ -33,26 +33,45 @@ namespace Veterinaria_API.Controllers
                     || (hoy == true && x.DiaTurno == dia)
                     || (fecha.HasValue && x.DiaTurno == fecha));
             }
+            List<TurnoDto> listTurnosDto = await resultadoBusqueda.Select(t => new TurnoDto
+            {
+                Id = t.Id,
+                DiaTurno = t.DiaTurno,
+                HoraTurno = t.HoraTurno,
+                VeterinarioId = t.VeterinarioId,
+                VeterinarioNombre = t.Veterianario.Nombre,
+                MascotaId = t.MascotaId,
+                MascotaNombre = t.Mascota.Nombre
+            }).ToListAsync();
 
-            var resultadoFinal = await resultadoBusqueda.ToListAsync();
                         
-            return Ok(resultadoFinal);
+            return Ok(listTurnosDto);
 
 
         }
 
         [HttpGet("{id:int}")]
-        public async Task<ActionResult<Turno>> GetById([FromRoute]int id)
+        public async Task<ActionResult<TurnoDto>> GetById([FromRoute]int id)
         {
             var resultadoBusqueda = await _context.Turnos
-          //      .Include(m => m.Mascota)
+                .Include(m => m.Mascota)
                 .Include(v => v.Veterianario)
                 .FirstOrDefaultAsync(x => x.Id == id);
             if(resultadoBusqueda == null)
             {
                 return NotFound("El turno no existe.");
             }
-            return Ok(resultadoBusqueda);
+            TurnoDto turnoDto = new TurnoDto()
+            {
+                Id = resultadoBusqueda.Id,
+                DiaTurno = resultadoBusqueda.DiaTurno,
+                HoraTurno = resultadoBusqueda.HoraTurno,
+                VeterinarioId = resultadoBusqueda.VeterinarioId,
+                VeterinarioNombre = resultadoBusqueda.Veterianario.Nombre,
+                MascotaId = resultadoBusqueda.MascotaId,
+                MascotaNombre = resultadoBusqueda.Mascota.Nombre
+            };
+            return Ok(turnoDto);
         }
         
         [HttpPost]

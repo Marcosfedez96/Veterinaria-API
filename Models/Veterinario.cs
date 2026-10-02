@@ -13,7 +13,6 @@ namespace Veterinaria_API.Models
         public string Matricula { set; get; }
         [Required(ErrorMessage ="Es necesario saber si es practicante o no.")]
         public bool EsPracticante { get; set; }
-        [JsonIgnore]
         public List<Turno> Turnos { set; get; } = new();
     }
 }

@@ -18,7 +18,7 @@ namespace Veterinaria_API.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<List<Veterinario>>> GetAll([FromQuery]string? especialidad, [FromQuery]bool? esPracticante)
+        public async Task<ActionResult<List<VeterinarioDto>>> GetAll([FromQuery]string? especialidad, [FromQuery]bool? esPracticante)
         {
             var resultadoBusqueda =  _context.Veterinarios.AsQueryable();
             
@@ -29,20 +29,36 @@ namespace Veterinaria_API.Controllers
             if (esPracticante.HasValue){
                 resultadoBusqueda = resultadoBusqueda.Where(x => x.EsPracticante.Equals(esPracticante));
             }
-            return Ok(await resultadoBusqueda.ToListAsync());
+            List<VeterinarioDto> listVeterinarioDto = await resultadoBusqueda
+                .Select(v => new VeterinarioDto()
+                {
+                    Id = v.Id,
+                    Nombre = v.Nombre,
+                    Especialidad = v.Especialidad,
+                    Matricula = v.Matricula,
+                    EsPracticante = v.EsPracticante
+                }).ToListAsync();
+            return Ok(listVeterinarioDto);
         }
         [HttpGet("{id:int}")]
-        public async Task<ActionResult<Veterinario>> GetById([FromRoute] int id)
+        public async Task<ActionResult<VeterinarioDto>> GetById([FromRoute] int id)
         {
-            var resultadoBusqueda = await _context.Veterinarios.Include(t=>t.Turnos).FirstOrDefaultAsync(x => x.Id == id);
+            var resultadoBusqueda = await _context.Veterinarios
+                .FirstOrDefaultAsync(x => x.Id == id);
             if(resultadoBusqueda == null)
             {
                 return NotFound("El veterinario no existe");
             }
-            else
+
+            VeterinarioDto veterinarioDto = new VeterinarioDto()
             {
-                return Ok(resultadoBusqueda);
-            }
+                Id = resultadoBusqueda.Id,
+                Especialidad = resultadoBusqueda.Especialidad,
+                Matricula = resultadoBusqueda.Matricula,
+                EsPracticante = resultadoBusqueda.EsPracticante
+            };
+             return Ok(veterinarioDto);
+           
             
         }
         [HttpPost]
