@@ -9,6 +9,13 @@ namespace Veterinaria_API.Mapping
         {
             CreateMap<Mascota, MascotaDto>().ForMember(dest => dest.TutorNombre, opt => opt.MapFrom(src => src.Tutor.Nombre));
             CreateMap<CrearMascotaDto, Mascota>();
+
+            CreateMap<Tutor, TutorDto>()
+                .ForMember(dest => dest.NombreMascotas, opt => opt.MapFrom(src => src.Mascotas.Select(m => m.Nombre)))
+                .ForMember(dest => dest.MascotasId, opt => opt.MapFrom(src => src.Mascotas.Select(m => m.Id)));
+            CreateMap<CrearTutorDto, Tutor>();
+
+
         }
     }
 }

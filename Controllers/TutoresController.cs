@@ -4,6 +4,8 @@ using Microsoft.EntityFrameworkCore;
 using Veterinaria_API.DTOs;
 using Veterinaria_API.Models;
 using static System.Runtime.InteropServices.JavaScript.JSType;
+using AutoMapper;
+using AutoMapper.QueryableExtensions;
 
 namespace Veterinaria_API.Controllers
 {
@@ -12,27 +14,32 @@ namespace Veterinaria_API.Controllers
     public class TutoresController : ControllerBase
     {
         private VeterinariaContext _context;
-        public TutoresController(VeterinariaContext context)
+        private readonly IMapper _mapper;
+        public TutoresController(VeterinariaContext context, IMapper mapper)
         {
             _context = context;
+            _mapper = mapper;
         }
 
         [HttpGet]
         public async Task<ActionResult<List<TutorDto>>> GetAll()
         {
-
-            var TutoresDto = await _context.Tutores
-                .Select(m => new TutorDto
-                {
-                    Id = m.Id,
-                    Nombre = m.Nombre,
-                    Telefono = m.Telefono,
-                    Email = m.Email,
-                    MascotasId = m.Mascotas.Select(m=> m.Id).ToList(),
-                    NombreMascotas = m.Mascotas.Select(m => m.Nombre).ToList()
-                }).ToListAsync();
             
-            return Ok(TutoresDto);
+            var tutoresDto = _context.Tutores
+                .Include(m => m.Mascotas)
+                .AsQueryable();
+            //.Select(m => new TutorDto
+            //{
+            //    Id = m.Id,
+            //    Nombre = m.Nombre,
+            //    Telefono = m.Telefono,
+            //    Email = m.Email,
+            //    MascotasId = m.Mascotas.Select(m=> m.Id).ToList(),
+            //    NombreMascotas = m.Mascotas.Select(m => m.Nombre).ToList()
+            //}).ToListAsync();
+            var listTutorDto = await tutoresDto.ProjectTo<TutorDto>(_mapper.ConfigurationProvider).ToListAsync();
+            
+                return Ok(listTutorDto);
         }
         [HttpGet("{id:int}")]
         public async Task<ActionResult<TutorDto>> GetById([FromRoute] int id)
@@ -46,16 +53,17 @@ namespace Veterinaria_API.Controllers
                 return NotFound("El tutor que busca no existe");
             }
 
-            TutorDto tutorDto = new TutorDto
-            {
+            var tutorDto = _mapper.Map<TutorDto>(resultadoBusqueda);
+            //TutorDto tutorDto = new TutorDto
+            //{
 
-                Id = resultadoBusqueda.Id,
-                Nombre = resultadoBusqueda.Nombre,
-                Telefono = resultadoBusqueda.Telefono,
-                Email = resultadoBusqueda.Email,
-                MascotasId = resultadoBusqueda.Mascotas.Select(m => m.Id).ToList(),
-                NombreMascotas = resultadoBusqueda.Mascotas.Select(m => m.Nombre).ToList()
-            };
+            //    Id = resultadoBusqueda.Id,
+            //    Nombre = resultadoBusqueda.Nombre,
+            //    Telefono = resultadoBusqueda.Telefono,
+            //    Email = resultadoBusqueda.Email,
+            //    MascotasId = resultadoBusqueda.Mascotas.Select(m => m.Id).ToList(),
+            //    NombreMascotas = resultadoBusqueda.Mascotas.Select(m => m.Nombre).ToList()
+            //};
 
             return Ok(tutorDto);
         }
@@ -70,7 +78,8 @@ namespace Veterinaria_API.Controllers
             };
             _context.Tutores.Add(tutor);
             await _context.SaveChangesAsync();
-            return CreatedAtAction(nameof(GetById), new { id = tutor.Id }, crearTutorDto);
+            var tutorDto = _mapper.Map<TutorDto>(tutor);
+            return CreatedAtAction(nameof(GetById), new { id = tutor.Id }, tutorDto);
         }
 
         [HttpPut("{id:int}")]

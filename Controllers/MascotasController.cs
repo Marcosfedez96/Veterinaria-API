@@ -5,6 +5,7 @@ using Veterinaria_API.DTOs;
 using Microsoft.EntityFrameworkCore;
 using AutoMapper;
 using AutoMapper.QueryableExtensions;
+using Veterinaria_API.Common;
 
 namespace Veterinaria_API.Controllers
 {
@@ -20,12 +21,15 @@ namespace Veterinaria_API.Controllers
             _mapper = mapper;
         }
         [HttpGet]
-        public async Task<ActionResult<List<MascotaDto>>> GetAll([FromQuery] string? especie, [FromQuery] string? nombre)
+        public async Task<ActionResult<PagedResult<MascotaDto>>> GetAll([FromQuery] string? especie,
+            [FromQuery] string? nombre,
+            [FromQuery]int numPagina = 1,
+            [FromQuery]int tamanioPagina = 2)
         {
             var resultado = _context.Mascotas.
                 Include(t=> t.Tutor)
                 .AsQueryable();
-            
+
 
             if (!string.IsNullOrEmpty(especie))
             {
@@ -35,7 +39,15 @@ namespace Veterinaria_API.Controllers
             {
                 resultado = resultado.Where(x => x.Nombre.Contains(nombre, StringComparison.OrdinalIgnoreCase));
             }
-            var mascotasDto = await resultado.ProjectTo<MascotaDto>(_mapper.ConfigurationProvider).ToListAsync();
+
+
+            int totalRegistros = await resultado.CountAsync();
+            int totalPaginas = (int)Math.Ceiling((double)totalRegistros / tamanioPagina);
+            var mascotasDto = await resultado
+                .OrderBy(m => m.Id)
+                .Skip((numPagina - 1) * tamanioPagina)
+                .Take(tamanioPagina)
+                .ProjectTo<MascotaDto>(_mapper.ConfigurationProvider).ToListAsync();
             //var mascotasDtoList = await resultado.
             //    .Select(m => new MascotaDto
             //    {
@@ -48,9 +60,16 @@ namespace Veterinaria_API.Controllers
             //    }
 
             //    ).ToListAsync();
-            
-           
-            return Ok(mascotasDto);
+            var paginas = new PagedResult<MascotaDto>
+            {
+                Datos = mascotasDto,
+                PaginaActual = numPagina,
+                TamanioPagina = tamanioPagina,
+                TotalRegistros = totalRegistros,
+                TotalPaginas = totalPaginas
+            };
+
+            return Ok(paginas);
         }
 
         [HttpGet("{id:int}")]
