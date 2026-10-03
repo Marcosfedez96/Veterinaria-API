@@ -3,7 +3,8 @@ using System.Diagnostics.Contracts;
 using Veterinaria_API.Models;
 using Veterinaria_API.DTOs;
 using Microsoft.EntityFrameworkCore;
-
+using AutoMapper;
+using AutoMapper.QueryableExtensions;
 
 namespace Veterinaria_API.Controllers
 {
@@ -12,9 +13,11 @@ namespace Veterinaria_API.Controllers
     public class MascotasController : ControllerBase
     {
         private readonly VeterinariaContext _context;
-        public MascotasController(VeterinariaContext context)
+        private readonly IMapper _mapper;
+        public MascotasController(VeterinariaContext context, IMapper mapper)
         {
             _context = context;
+            _mapper = mapper;
         }
         [HttpGet]
         public async Task<ActionResult<List<MascotaDto>>> GetAll([FromQuery] string? especie, [FromQuery] string? nombre)
@@ -32,43 +35,37 @@ namespace Veterinaria_API.Controllers
             {
                 resultado = resultado.Where(x => x.Nombre.Contains(nombre, StringComparison.OrdinalIgnoreCase));
             }
-            var mascotasDtoList = await resultado
-                .Select(m => new MascotaDto
-                {
-                    Id = m.Id,
-                    Nombre = m.Nombre,
-                    Especie = m.Especie,
-                    Edad = m.Edad,
-                    TutorId = m.TutorId,
-                    TutorNombre = m.Tutor.Nombre
-                }
-                ).ToListAsync();
+            var mascotasDto = await resultado.ProjectTo<MascotaDto>(_mapper.ConfigurationProvider).ToListAsync();
+            //var mascotasDtoList = await resultado.
+            //    .Select(m => new MascotaDto
+            //    {
+            //        Id = m.Id,
+            //        Nombre = m.Nombre,
+            //        Especie = m.Especie,
+            //        Edad = m.Edad,
+            //        TutorId = m.TutorId,
+            //        TutorNombre = m.Tutor.Nombre
+            //    }
+
+            //    ).ToListAsync();
             
            
-            return Ok(mascotasDtoList);
+            return Ok(mascotasDto);
         }
 
         [HttpGet("{id:int}")]
         public async Task<ActionResult<MascotaDto>> GetById([FromRoute] int id)
         {
             var resultadoBusqueda = await _context.Mascotas
-                .Include(t=>t.Tutor)
+                .Include(t => t.Tutor)
                 .FirstOrDefaultAsync(x => x.Id == id);
+
             if (resultadoBusqueda == null)
             {
                 return NotFound();
             }
-            MascotaDto mascotaDto = new MascotaDto()
-            {
-                Id = resultadoBusqueda.Id,
-                Nombre = resultadoBusqueda.Nombre,
-                Especie = resultadoBusqueda.Especie,
-                Edad = resultadoBusqueda.Edad,
-                TutorId = resultadoBusqueda.TutorId,
-                TutorNombre = resultadoBusqueda.Tutor.Nombre
-            };
 
-
+            var mascotaDto = _mapper.Map<MascotaDto>(resultadoBusqueda);
             return Ok(mascotaDto);
         }
         [HttpPost]
@@ -84,18 +81,20 @@ namespace Veterinaria_API.Controllers
                 return NotFound("el Tutor no existe.");
             }
             var turnos = new List<Turno>();
-            Mascota mascota = new Mascota
-            {
-                Nombre = crearMascotaDto.Nombre,
-                Especie = crearMascotaDto.Especie,
-                Edad = crearMascotaDto.Edad,
-                TutorId = crearMascotaDto.TutorId,
-                Tutor = tutor,
-                Turnos = turnos
-            };
+            var mascota = _mapper.Map<Mascota>(crearMascotaDto);
+            //Mascota mascota = new Mascota
+            //{
+            //    Nombre = crearMascotaDto.Nombre,
+            //    Especie = crearMascotaDto.Especie,
+            //    Edad = crearMascotaDto.Edad,
+            //    TutorId = crearMascotaDto.TutorId,
+            //    Tutor = tutor,
+            //    Turnos = turnos
+            //};
             _context.Add(mascota);
             await _context.SaveChangesAsync();
-            return CreatedAtAction(nameof(GetById), new { id = mascota.Id }, crearMascotaDto);
+            var mascotaDto = _mapper.Map<MascotaDto>(mascota);
+            return CreatedAtAction(nameof(GetById), new { id = mascota.Id }, mascotaDto);
                 
         }
         [HttpPut("{id:int}")]

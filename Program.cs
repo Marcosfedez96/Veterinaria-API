@@ -2,6 +2,7 @@ using Scalar.AspNetCore;
 using Veterinaria_API;
 using Veterinaria_API.Models;
 using Microsoft.EntityFrameworkCore;
+using AutoMapper;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,6 +14,10 @@ builder.Services.AddOpenApi();
 
 builder.Services.AddDbContext<VeterinariaContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("VeterinariaConnection")));
+builder.Services.AddAutoMapper(cfg =>
+{
+    cfg.AddMaps(typeof(Program));
+});
 var app = builder.Build();
 /*builder.Services.AddCors(options =>
 {
