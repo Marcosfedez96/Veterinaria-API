@@ -14,6 +14,8 @@ namespace Veterinaria_API.Mapping
                 .ForMember(dest => dest.NombreMascotas, opt => opt.MapFrom(src => src.Mascotas.Select(m => m.Nombre)))
                 .ForMember(dest => dest.MascotasId, opt => opt.MapFrom(src => src.Mascotas.Select(m => m.Id)));
             CreateMap<CrearTutorDto, Tutor>();
+            CreateMap<Veterinario, VeterinarioDto>();
+            CreateMap<CrearVeterinarioDto, Veterinario>();
 
 
         }

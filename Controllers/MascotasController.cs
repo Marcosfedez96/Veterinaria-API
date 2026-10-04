@@ -81,7 +81,7 @@ namespace Veterinaria_API.Controllers
 
             if (resultadoBusqueda == null)
             {
-                return NotFound();
+                return NotFound(new ErrorResponse { Mensaje = "La mascota que busca no existe en el sistema" });
             }
 
             var mascotaDto = _mapper.Map<MascotaDto>(resultadoBusqueda);
@@ -92,12 +92,12 @@ namespace Veterinaria_API.Controllers
         {
             if(crearMascotaDto.Especie.Equals("Ave",StringComparison.OrdinalIgnoreCase) && crearMascotaDto.Edad > 15)
             {
-               return BadRequest(new {messaje = "Las aves no puedes superar los 15 años" });
+               return BadRequest(new ErrorResponse { Mensaje = "Las aves no puedes superar los 15 años" });
             }
             Tutor tutor = await _context.Tutores.FirstOrDefaultAsync(x => x.Id == crearMascotaDto.TutorId);
             if(tutor == null)
             {
-                return NotFound("el Tutor no existe.");
+                return NotFound(new ErrorResponse { Mensaje = "el Tutor no existe." });
             }
             var turnos = new List<Turno>();
             var mascota = _mapper.Map<Mascota>(crearMascotaDto);
@@ -122,13 +122,13 @@ namespace Veterinaria_API.Controllers
             var mascotaExistente = await _context.Mascotas.FirstOrDefaultAsync(x => x.Id == id);
             if (mascotaExistente == null)
             {
-                return NotFound();
+                return NotFound(new ErrorResponse { Mensaje = "La mascota que quiere editar no existe" });
             }
             if(_mascota.Especie.Equals("perro",StringComparison.OrdinalIgnoreCase) && _mascota.Edad > 22 ||
                _mascota.Especie.Equals("ave",StringComparison.OrdinalIgnoreCase)&& _mascota.Edad > 15 ||
                _mascota.Especie.Equals("raton",StringComparison.OrdinalIgnoreCase)&& _mascota.Edad > 4)
             {
-                return BadRequest(new { message = "la edad puesta es imposible para esta especie" });
+                return BadRequest(new ErrorResponse { Mensaje = "la edad puesta es imposible para esta especie" });
             }
             mascotaExistente.Nombre = _mascota.Nombre;
             mascotaExistente.Especie = _mascota.Especie;
@@ -142,7 +142,7 @@ namespace Veterinaria_API.Controllers
             var mascotaExistente = await _context.Mascotas.FirstOrDefaultAsync(x => x.Id == id);
             if (mascotaExistente == null)
             {
-                return NotFound();
+                return NotFound(new ErrorResponse { Mensaje = "La mascota que quiere eliminar no existe en el sistema" });
             }
             _context.Mascotas.Remove(mascotaExistente);
             await _context.SaveChangesAsync();

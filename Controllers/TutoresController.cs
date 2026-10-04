@@ -1,11 +1,12 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using AutoMapper;
+using AutoMapper.QueryableExtensions;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Veterinaria_API.Common;
 using Veterinaria_API.DTOs;
 using Veterinaria_API.Models;
 using static System.Runtime.InteropServices.JavaScript.JSType;
-using AutoMapper;
-using AutoMapper.QueryableExtensions;
 
 namespace Veterinaria_API.Controllers
 {
@@ -50,7 +51,7 @@ namespace Veterinaria_API.Controllers
             
             if(resultadoBusqueda == null)
             {
-                return NotFound("El tutor que busca no existe");
+                return NotFound(new ErrorResponse { Mensaje = "El tutor que busca no existe" });
             }
 
             var tutorDto = _mapper.Map<TutorDto>(resultadoBusqueda);
@@ -88,7 +89,7 @@ namespace Veterinaria_API.Controllers
             var resultadoBusqueda = await _context.Tutores.FirstOrDefaultAsync(x => x.Id == id);
             if(resultadoBusqueda == null)
             {
-                return NotFound("El tutor que busca no existe.");
+                return NotFound(new ErrorResponse { Mensaje = "El tutor que busca no existe." });
             }
             resultadoBusqueda.Nombre = tutor.Nombre;
             resultadoBusqueda.Telefono = tutor.Telefono;
@@ -102,7 +103,7 @@ namespace Veterinaria_API.Controllers
             var resultadoBusqueda = await _context.Tutores.FirstOrDefaultAsync(x => x.Id == id);
             if(resultadoBusqueda == null)
             {
-                return NotFound("El tutor que intenta eliminar no exite en el sistema.");
+                return NotFound(new ErrorResponse { Mensaje = "El tutor que intenta eliminar no exite en el sistema." });
             }
             _context.Tutores.Remove(resultadoBusqueda);
             await _context.SaveChangesAsync();

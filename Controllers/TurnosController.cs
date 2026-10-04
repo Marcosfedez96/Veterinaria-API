@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using System.Security.Cryptography;
 using Veterinaria_API.DTOs;
 using Veterinaria_API.Models;
+using Veterinaria_API.Common;
 
 namespace Veterinaria_API.Controllers
 {
@@ -18,14 +19,21 @@ namespace Veterinaria_API.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<List<TurnoDto>>> GetAll([FromQuery]int? idVeterinario, [FromQuery]DateOnly? fecha, [FromQuery] bool? hoy)
+        public async Task<ActionResult<PagedResult<TurnoDto>>> GetAll(
+            [FromQuery]int? idVeterinario, 
+            [FromQuery]DateOnly? fecha, 
+            [FromQuery] bool? hoy,
+            [FromQuery] int numPagina = 1 ,
+            [FromQuery] int tamPagina = 3)
         {
+
             DateOnly dia = DateOnly.FromDateTime(DateTime.Now);
 
             var resultadoBusqueda = _context.Turnos
                 .Include(m => m.Mascota)
                 .Include(v => v.Veterianario)
                 .AsQueryable();
+           
             if(idVeterinario.HasValue || hoy == true || fecha.HasValue)
             {
                 resultadoBusqueda = resultadoBusqueda
@@ -33,19 +41,34 @@ namespace Veterinaria_API.Controllers
                     || (hoy == true && x.DiaTurno == dia)
                     || (fecha.HasValue && x.DiaTurno == fecha));
             }
-            List<TurnoDto> listTurnosDto = await resultadoBusqueda.Select(t => new TurnoDto
-            {
-                Id = t.Id,
-                DiaTurno = t.DiaTurno,
-                HoraTurno = t.HoraTurno,
-                VeterinarioId = t.VeterinarioId,
-                VeterinarioNombre = t.Veterianario.Nombre,
-                MascotaId = t.MascotaId,
-                MascotaNombre = t.Mascota.Nombre
-            }).ToListAsync();
+            int totalRegistros = await resultadoBusqueda.CountAsync();
+            int totalPaginas = (int)Math.Ceiling((double)totalRegistros / tamPagina);
 
+           List <TurnoDto> listTurnosDto = await resultadoBusqueda
+                .OrderBy(t => t.Id)
+                .Skip((numPagina - 1)* tamPagina)
+                .Take(tamPagina)
+                .Select(t => new TurnoDto
+                {
+                    Id = t.Id,
+                    DiaTurno = t.DiaTurno,
+                    HoraTurno = t.HoraTurno,
+                    VeterinarioId = t.VeterinarioId,
+                    VeterinarioNombre = t.Veterianario.Nombre,
+                    MascotaId = t.MascotaId,
+                    MascotaNombre = t.Mascota.Nombre
+                }).ToListAsync();
+
+            var paginas = new PagedResult<TurnoDto>
+            {
+                Datos = listTurnosDto,
+                PaginaActual = numPagina,
+                TamanioPagina = tamPagina,
+                TotalRegistros = totalRegistros,
+                TotalPaginas = totalPaginas
+            };
                         
-            return Ok(listTurnosDto);
+            return Ok(paginas);
 
 
         }
@@ -59,7 +82,7 @@ namespace Veterinaria_API.Controllers
                 .FirstOrDefaultAsync(x => x.Id == id);
             if(resultadoBusqueda == null)
             {
-                return NotFound("El turno no existe.");
+                return NotFound(new ErrorResponse { Mensaje = "El turno no existe." });
             }
             TurnoDto turnoDto = new TurnoDto()
             {
@@ -83,7 +106,7 @@ namespace Veterinaria_API.Controllers
                 && x.VeterinarioId == crearTurnoDto.VeterinarioId);
             if(turnoOcupado != null)
             {
-                return Conflict("El turno esta Ocupado");
+                return Conflict(new ErrorResponse { Mensaje = "El turno esta Ocupado" });
             }
             Turno turno = new Turno()
             {
@@ -116,22 +139,22 @@ namespace Veterinaria_API.Controllers
                 && x.VeterinarioId == turno.VeterinarioId);
             if (turnoOcupado != null)
             {
-                return Conflict("El turno esta Ocupado");
+                return Conflict(new ErrorResponse { Mensaje = "El turno esta Ocupado" });
             }
             var resultadoBusqueda = await _context.Turnos.FirstOrDefaultAsync(x => x.Id == id);
             if(resultadoBusqueda == null)
             {
-                return NotFound("El turno no existe en el sistema");
+                return NotFound(new ErrorResponse { Mensaje = "El turno no existe en el sistema" });
             }
             turno.Mascota = await _context.Mascotas.FirstOrDefaultAsync(x => x.Id == turno.MascotaId);
             if (turno.Mascota == null)
             {
-                return NotFound("La mascota no Existe en el sistema.");
+                return NotFound(new ErrorResponse { Mensaje = "La mascota no Existe en el sistema." });
             }
             turno.Veterianario = await _context.Veterinarios.FirstOrDefaultAsync(x => x.Id == turno.VeterinarioId);
             if (turno.Veterianario == null)
             {
-                return NotFound("El veterinario no existe en el sistema.");
+                return NotFound(new ErrorResponse { Mensaje = "El veterinario no existe en el sistema." });
             }
             resultadoBusqueda.DiaTurno = turno.DiaTurno;
             resultadoBusqueda.HoraTurno = turno.HoraTurno;
@@ -146,7 +169,7 @@ namespace Veterinaria_API.Controllers
             var resultadoBusqueda = await _context.Turnos.FirstOrDefaultAsync(x => x.Id == id);
             if(resultadoBusqueda == null)
             {
-                return NotFound("El turno no existe en el sistema.");
+                return NotFound(new ErrorResponse { Mensaje = "El turno no existe en el sistema." });
             }
 
             _context.Turnos.Remove(resultadoBusqueda);

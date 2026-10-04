@@ -1,6 +1,9 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using AutoMapper;
+using AutoMapper.QueryableExtensions;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Veterinaria_API.Common;
 using Veterinaria_API.DTOs;
 using Veterinaria_API.Models;
 using static System.Runtime.InteropServices.JavaScript.JSType;
@@ -12,9 +15,11 @@ namespace Veterinaria_API.Controllers
     public class VeterinariosController : ControllerBase
     {
         private readonly VeterinariaContext _context;
-        public VeterinariosController(VeterinariaContext context)
+        private readonly IMapper _mapper;
+        public VeterinariosController(VeterinariaContext context,IMapper mapper)
         {
             _context = context;
+            _mapper = mapper;
         }
 
         [HttpGet]
@@ -29,16 +34,17 @@ namespace Veterinaria_API.Controllers
             if (esPracticante.HasValue){
                 resultadoBusqueda = resultadoBusqueda.Where(x => x.EsPracticante.Equals(esPracticante));
             }
-            List<VeterinarioDto> listVeterinarioDto = await resultadoBusqueda
-                .Select(v => new VeterinarioDto()
-                {
-                    Id = v.Id,
-                    Nombre = v.Nombre,
-                    Especialidad = v.Especialidad,
-                    Matricula = v.Matricula,
-                    EsPracticante = v.EsPracticante
-                }).ToListAsync();
-            return Ok(listVeterinarioDto);
+            var ListVeterinarDto = await resultadoBusqueda.ProjectTo<VeterinarioDto>(_mapper.ConfigurationProvider).ToListAsync();
+            //List<VeterinarioDto> listVeterinarioDto = await resultadoBusqueda
+            //    .Select(v => new VeterinarioDto()
+            //    {
+            //        Id = v.Id,
+            //        Nombre = v.Nombre,
+            //        Especialidad = v.Especialidad,
+            //        Matricula = v.Matricula,
+            //        EsPracticante = v.EsPracticante
+            //    }).ToListAsync();
+            return Ok(ListVeterinarDto);
         }
         [HttpGet("{id:int}")]
         public async Task<ActionResult<VeterinarioDto>> GetById([FromRoute] int id)
@@ -47,16 +53,16 @@ namespace Veterinaria_API.Controllers
                 .FirstOrDefaultAsync(x => x.Id == id);
             if(resultadoBusqueda == null)
             {
-                return NotFound("El veterinario no existe");
+                return NotFound(new ErrorResponse { Mensaje = "El veterinario no existe" });
             }
-
-            VeterinarioDto veterinarioDto = new VeterinarioDto()
-            {
-                Id = resultadoBusqueda.Id,
-                Especialidad = resultadoBusqueda.Especialidad,
-                Matricula = resultadoBusqueda.Matricula,
-                EsPracticante = resultadoBusqueda.EsPracticante
-            };
+            var veterinarioDto = _mapper.Map<VeterinarioDto>(resultadoBusqueda);
+            //VeterinarioDto veterinarioDto = new VeterinarioDto()
+            //{
+            //    Id = resultadoBusqueda.Id,
+            //    Especialidad = resultadoBusqueda.Especialidad,
+            //    Matricula = resultadoBusqueda.Matricula,
+            //    EsPracticante = resultadoBusqueda.EsPracticante
+            //};
              return Ok(veterinarioDto);
            
             
@@ -66,37 +72,38 @@ namespace Veterinaria_API.Controllers
         {
             if(crearVeterinarioDto.EsPracticante.Equals(true) && !string.IsNullOrEmpty(crearVeterinarioDto.Matricula))
             {
-                return BadRequest("Un practicante no tiene matricula");
+                return BadRequest(new ErrorResponse { Mensaje = "Un practicante no tiene matricula" });
             }
-            Veterinario veterinario = new Veterinario()
-            {
-                Nombre = crearVeterinarioDto.Nombre,
-                Especialidad = crearVeterinarioDto.Especialidad,
-                Matricula = crearVeterinarioDto.Matricula,
-                EsPracticante = crearVeterinarioDto.EsPracticante
-            };
+            var veterinario = _mapper.Map<Veterinario>(crearVeterinarioDto);
+            //Veterinario veterinario = new Veterinario()
+            //{
+            //    Nombre = crearVeterinarioDto.Nombre,
+            //    Especialidad = crearVeterinarioDto.Especialidad,
+            //    Matricula = crearVeterinarioDto.Matricula,
+            //    EsPracticante = crearVeterinarioDto.EsPracticante
+            //};
             //veterinario.Id = BaseDeDatos.veterinarios.Any() ? BaseDeDatos.veterinarios.Max(x => x.Id) + 1 : 1;
             _context.Veterinarios.Add(veterinario);
             await _context.SaveChangesAsync();
             return CreatedAtAction(nameof(GetById), new { id = veterinario.Id }, crearVeterinarioDto);
         }
         [HttpPut("{id:int}")]
-        public async Task<IActionResult> PutVeterinario([FromRoute]int id, [FromBody]Veterinario veterinario)
+        public async Task<IActionResult> PutVeterinario([FromRoute]int id, [FromBody] CrearVeterinarioDto crearVeterinarioDto)
         {
             var resultadoBusqueda = await _context.Veterinarios.FirstOrDefaultAsync(x => x.Id == id);
             if(resultadoBusqueda == null)
             {
-                return NotFound("El veterinario que busca no existe en el sistema.");
+                return NotFound(new ErrorResponse { Mensaje = "El veterinario que busca no existe en el sistema." });
             }
-            else
-            {
-                resultadoBusqueda.Nombre = veterinario.Nombre;
-                resultadoBusqueda.Especialidad = veterinario.Especialidad;
-                resultadoBusqueda.Matricula = veterinario.Matricula;
-                resultadoBusqueda.EsPracticante = veterinario.EsPracticante;
-                await _context.SaveChangesAsync();
-                return Ok(resultadoBusqueda);
-            }
+            _mapper.Map(crearVeterinarioDto, resultadoBusqueda);
+
+            //resultadoBusqueda.Nombre = veterinario.Nombre;
+            //resultadoBusqueda.Especialidad = veterinario.Especialidad;
+            //resultadoBusqueda.Matricula = veterinario.Matricula;
+            //resultadoBusqueda.EsPracticante = veterinario.EsPracticante;
+            await _context.SaveChangesAsync();
+            return Ok(resultadoBusqueda);
+            
         }
         [HttpDelete("{id:int}")]
         public async Task<IActionResult> DeleteVeterinario([FromRoute]int id)
@@ -104,7 +111,7 @@ namespace Veterinaria_API.Controllers
             var resultadoBusqueda = await _context.Veterinarios.FirstOrDefaultAsync(x => x.Id == id);
             if(resultadoBusqueda == null)
             {
-                return NotFound("El veterinario que intenta eliminar no existe en el sistema.");
+                return NotFound(new ErrorResponse { Mensaje = "El veterinario que intenta eliminar no existe en el sistema." });
             }
             else
             {
