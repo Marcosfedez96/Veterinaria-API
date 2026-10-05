@@ -11,6 +11,8 @@ namespace Veterinaria_API.Models
         public int VeterinarioId { set; get; }
         public int MascotaId { set; get; }
         public Veterinario Veterianario { set; get; }
-        public Mascota Mascota { set; get; } 
+        public Mascota Mascota { set; get; }
+        public List<TurnoServicio> TurnoServicio { set; get; } = new();
+
     }
 }
