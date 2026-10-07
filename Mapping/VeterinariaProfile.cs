@@ -16,6 +16,8 @@ namespace Veterinaria_API.Mapping
             CreateMap<CrearTutorDto, Tutor>();
             CreateMap<Veterinario, VeterinarioDto>();
             CreateMap<CrearVeterinarioDto, Veterinario>();
+            CreateMap<Servicio,ServicioDto>();
+            CreateMap<CrearServicioDto, Servicio>();
 
 
         }
