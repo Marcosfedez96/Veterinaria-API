@@ -7,7 +7,15 @@ using AutoMapper;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader();
+    });
+});
 builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
@@ -18,16 +26,9 @@ builder.Services.AddAutoMapper(cfg =>
 {
     cfg.AddMaps(typeof(Program));
 });
+
 var app = builder.Build();
-/*builder.Services.AddCors(options =>
-{
-    options.AddPolicy("PermitirFrontend", policy =>
-    {
-        policy.WithOrigins("http://localhost:5173") // el origen de tu futuro frontend
-              .AllowAnyMethod()
-              .AllowAnyHeader();
-    });
-});*/
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
@@ -38,9 +39,9 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 app.UseAuthorization();
-//app.UseCors("PermitirFrontend");
+app.UseCors("AllowAll");
 app.MapControllers();
-
+/*
 app.MapGet("/api/minimal/mascotas", () => {
     return Results.Ok(BaseDeDatos.mascotas);
 });
@@ -55,7 +56,7 @@ app.MapPost("/api/minimal/mascotas", (Mascota mascota) =>
     mascota.Id = BaseDeDatos.mascotas.Any() ? BaseDeDatos.mascotas.Max(x => x.Id) + 1 : 1;
     BaseDeDatos.mascotas.Add(mascota);
     return Results.CreatedAtRoute("GetMascotaMinimal", new { id = mascota.Id}, mascota);
-});
+});*/
 
 app.Run();
 

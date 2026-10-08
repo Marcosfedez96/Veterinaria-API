@@ -11,5 +11,6 @@ namespace Veterinaria_API.DTOs
         public string VeterinarioNombre { set; get; }
         public int MascotaId { set; get; }
         public string MascotaNombre { set; get; }
+        public List<string> Servicios { get; set; } = new();
     }
 }

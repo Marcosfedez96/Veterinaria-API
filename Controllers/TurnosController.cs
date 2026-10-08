@@ -30,11 +30,13 @@ namespace Veterinaria_API.Controllers
             DateOnly dia = DateOnly.FromDateTime(DateTime.Now);
 
             var resultadoBusqueda = _context.Turnos
-                .Include(m => m.Mascota)
-                .Include(v => v.Veterianario)
+                .Include(t => t.Mascota)
+                .Include(t => t.Veterianario)
+                .Include(t => t.TurnoServicios)
+                    .ThenInclude(ts => ts.Servicio)
                 .AsQueryable();
-           
-            if(idVeterinario.HasValue || hoy == true || fecha.HasValue)
+
+            if (idVeterinario.HasValue || hoy == true || fecha.HasValue)
             {
                 resultadoBusqueda = resultadoBusqueda
                     .Where(x => (idVeterinario.HasValue && x.VeterinarioId == idVeterinario)
@@ -56,7 +58,8 @@ namespace Veterinaria_API.Controllers
                     VeterinarioId = t.VeterinarioId,
                     VeterinarioNombre = t.Veterianario.Nombre,
                     MascotaId = t.MascotaId,
-                    MascotaNombre = t.Mascota.Nombre
+                    MascotaNombre = t.Mascota.Nombre,
+                    Servicios = t.TurnoServicios.Select(ts => ts.Servicio.Nombre).ToList()
                 }).ToListAsync();
 
             var paginas = new PagedResult<TurnoDto>
@@ -76,10 +79,13 @@ namespace Veterinaria_API.Controllers
         [HttpGet("{id:int}")]
         public async Task<ActionResult<TurnoDto>> GetById([FromRoute]int id)
         {
-            var resultadoBusqueda = await _context.Turnos
-                .Include(m => m.Mascota)
-                .Include(v => v.Veterianario)
+            var resultadoBusqueda =await _context.Turnos
+                .Include(t => t.Mascota)
+                .Include(t => t.Veterianario)
+                .Include(t => t.TurnoServicios)
+                    .ThenInclude(ts => ts.Servicio)
                 .FirstOrDefaultAsync(x => x.Id == id);
+
             if(resultadoBusqueda == null)
             {
                 return NotFound(new ErrorResponse { Mensaje = "El turno no existe." });
@@ -92,7 +98,8 @@ namespace Veterinaria_API.Controllers
                 VeterinarioId = resultadoBusqueda.VeterinarioId,
                 VeterinarioNombre = resultadoBusqueda.Veterianario.Nombre,
                 MascotaId = resultadoBusqueda.MascotaId,
-                MascotaNombre = resultadoBusqueda.Mascota.Nombre
+                MascotaNombre = resultadoBusqueda.Mascota.Nombre,
+                Servicios = resultadoBusqueda.TurnoServicios.Select(ts => ts.Servicio.Nombre).ToList()
             };
             return Ok(turnoDto);
         }
@@ -176,5 +183,49 @@ namespace Veterinaria_API.Controllers
             await _context.SaveChangesAsync();
             return NoContent();
         }
+        [HttpPost ("{turnoId:int}/servicios/{servicioId:int}")]
+        public async Task<IActionResult> AgregarServicio([FromRoute]int turnoId, [FromRoute]int servicioId)
+        {
+            var turno = await _context.Turnos.FirstOrDefaultAsync(t => t.Id == turnoId);
+            if(turno == null)
+            {
+                return NotFound(new ErrorResponse { Mensaje = "El turno no existe en el sistema." });
+            }
+            var servicio = await _context.Servicios.FirstOrDefaultAsync(s => s.Id == servicioId);
+            if(servicio == null)
+            {
+                return NotFound(new ErrorResponse { Mensaje = " El servicio no existe en el sistema." });
+            }
+            bool yaAsociado = await _context.TurnoServicios
+                .AnyAsync(ts => ts.ServicioId == servicioId && ts.TurnoId == turnoId);
+            if (yaAsociado)
+            {
+                return Conflict(new ErrorResponse { Mensaje = "Este servicio ya está asociado a este turno." });
+            }
+            var turnoServicio = new TurnoServicio 
+            { 
+                Servicio = servicio,
+                Turno = turno,
+                ServicioId = servicioId, 
+                TurnoId = turnoId
+            };
+            _context.TurnoServicios.Add(turnoServicio);
+            await _context.SaveChangesAsync();
+            return NoContent();
+        }
+        [HttpDelete("{turnoId:int}/servicios/{servicioId:int}")]
+        public async Task<IActionResult> DeleteServicio([FromRoute] int turnoId, [FromRoute] int servicioId)
+        {
+            var turnoServicio = await _context.TurnoServicios
+                .FirstOrDefaultAsync(ts => ts.TurnoId == turnoId && ts.ServicioId == servicioId);
+            if(turnoServicio == null)
+            {
+                return NotFound(new ErrorResponse { Mensaje = "El Turno/Servicio que decea Eliminar no existe en el sistema." });
+            }
+            _context.TurnoServicios.Remove(turnoServicio);
+            await _context.SaveChangesAsync();
+            return NoContent();
+        }
     }
+    
 }

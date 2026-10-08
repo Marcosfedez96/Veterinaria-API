@@ -12,7 +12,7 @@ namespace Veterinaria_API.Models
         public int MascotaId { set; get; }
         public Veterinario Veterianario { set; get; }
         public Mascota Mascota { set; get; }
-        public List<TurnoServicio> TurnoServicio { set; get; } = new();
+        public List<TurnoServicio> TurnoServicios { set; get; } = new();
 
     }
 }
